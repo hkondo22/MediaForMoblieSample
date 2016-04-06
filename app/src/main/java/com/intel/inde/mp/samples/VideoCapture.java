@@ -33,7 +33,10 @@ import android.content.Context;
 import com.intel.inde.mp.*;
 import com.intel.inde.mp.android.AndroidMediaObjectFactory;
 import com.intel.inde.mp.android.AudioFormatAndroid;
+import com.intel.inde.mp.android.MediaCodecEncoderPlugin;
 import com.intel.inde.mp.android.VideoFormatAndroid;
+import com.intel.inde.mp.domain.AudioEncoder;
+import com.intel.inde.mp.domain.VideoEncoder;
 import com.intel.inde.mp.samples.controls.GameGLCapture;
 
 import java.io.IOException;
@@ -68,6 +71,7 @@ public class VideoCapture {
         if (isStarted()) {
             throw new IllegalStateException(TAG + " already started!");
         }
+        android.util.Log.e("LAMOF", "start");
 
         capture = new GameGLCapture(new AndroidMediaObjectFactory(context), progressListener);
 
@@ -88,7 +92,20 @@ public class VideoCapture {
             throw new IllegalStateException(TAG + " already started!");
         }
 
-        capture = new GameGLCapture(new AndroidMediaObjectFactory(context), progressListener);
+        capture = new GameGLCapture(new AndroidMediaObjectFactory(context) {
+
+            public VideoEncoder createVideoEncoder() {
+                VideoEncoder videoEncoder = new VideoEncoder(new MediaCodecEncoderPlugin("video/avc", this.getEglUtil()));
+                videoEncoder.setTimeout(1);
+                return videoEncoder;
+            }
+
+            public AudioEncoder createAudioEncoder(String mime) {
+                AudioEncoder audioEncoder = new AudioEncoder(MediaCodecEncoderPlugin.createByCodecName(mime != null?mime:"audio/mp4a-latm", this.getEglUtil()));
+                audioEncoder.setTimeout(1);
+                return audioEncoder;
+            }
+        }, progressListener);
 
         capture.setTargetConnection(params);
         capture.setTargetVideoFormat(videoFormat);
